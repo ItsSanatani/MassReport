@@ -1,21 +1,26 @@
+import motor.motor_asyncio
 import logging
 
 logger = logging.getLogger(__name__)
 
-user_data = {}
+MONGO_URL = "mongodb+srv://Radheee:sanatani@cluster0.sgop4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL)
+db = client["MassReportDB"]
+users = db["users"]
 
-def get_user_data(user_id):
-    data = user_data.get(user_id, {})
-    logger.info(f"Fetching data for user_id: {user_id} | Data: {data}")
-    return data
-
-def set_user_data(user_id, data):
-    user_data[user_id] = data
-    logger.info(f"Setting data for user_id: {user_id} | Data: {data}")
-
-def clear_user_data(user_id):
-    removed = user_data.pop(user_id, None)
-    if removed:
-        logger.info(f"Cleared data for user_id: {user_id}")
+async def add_user(user_id, username, language):
+    user = await users.find_one({"user_id": user_id})
+    if not user:
+        await users.insert_one({
+            "user_id": user_id,
+            "username": username,
+            "language": language
+        })
+        logger.info(f"Added New User -> ID: {user_id}, Username: @{username}, Lang: {language}")
     else:
-        logger.info(f"No data found to clear for user_id: {user_id}")
+        logger.info(f"User Already Exists -> ID: {user_id}")
+
+async def get_user(user_id):
+    user = await users.find_one({"user_id": user_id})
+    logger.info(f"Fetching data for user_id: {user_id} | Data: {user}")
+    return user
