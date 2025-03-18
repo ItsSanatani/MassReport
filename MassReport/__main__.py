@@ -1,5 +1,5 @@
 from MassReport import app
-from MassReport.modules import report
+from MassReport.module import report
 from MassReport.database import database
 
 if __name__ == "__main__":
