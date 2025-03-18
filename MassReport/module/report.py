@@ -1,6 +1,6 @@
 from MassReport import app
 from MassReport.database import database
-from MassReport.modules.client_sessions import clients
+from MassReport.module.client_sessions import clients
 from pyrogram import filters, errors
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.raw.functions.account import ReportPeer
