@@ -4,8 +4,16 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from MassReport.module import report
 from MassReport import app
 
-# Log Channel ID
-LOG_CHANNEL_ID = -1002640038102  # Replace with actual ID
+# लॉगिंग कॉन्फ़िगरेशन
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
+    handlers=[
+        logging.FileHandler('mass_report_bot.log'),  # लॉग फ़ाइल का नाम
+        logging.StreamHandler()  # कंसोल पर भी लॉग दिखाए
+    ]
+)
+logger = logging.getLogger(__name__)
 
 @app.on_message(filters.command("start") & filters.private)
 async def start_command(client, message):
@@ -13,33 +21,19 @@ async def start_command(client, message):
         [InlineKeyboardButton("➕ Start Reporting", callback_data="start_report")]
     ]
     await message.reply_photo(
-        photo="https://files.catbox.moe/31g9nf.jpg",
+        photo="https://files.catbox.moe/31g9nf.jpg",  # अपनी इमेज URL यहाँ डालें
         caption="**Welcome to Mass Report Bot!**\n\nClick the button below to start reporting.",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
-
+    # लॉगिंग: नए उपयोगकर्ता ने बॉट शुरू किया
     user = message.from_user
-    log_text = f"""
-🚀 **New User Started Bot!**
+    logger.info(
+        f"New User Started Bot!\n\n"
+        f"👤 User: [{user.first_name}](tg://user?id={user.id})\n"
+        f"🆔 Username: @{user.username}\n"
+        f"🌐 Language: {user.language_code}"
+    )
 
-👤 **User:** [{user.first_name}](tg://user?id={user.id})
-
-🆔 **Username:** @{user.username if user.username else 'N/A'}
-
-🌐 **Language:** {user.language_code if user.language_code else 'N/A'}
-
-🆔 **User ID:** `{user.id}`
-"""
-
-    # Send Log Message to Log Channel
-    try:
-        await app.send_message(
-            chat_id=LOG_CHANNEL_ID,
-            text=log_text,
-            disable_web_page_preview=True
-        )
-    except Exception as e:
-        logging.error(f"Failed to send log message: {e}")
-
-    # Also log in Console/File
-    logging.info(f"New User Started: {user.first_name} | Username: @{user.username} | ID: {user.id} | Lang: {user.language_code}")
+if __name__ == "__main__":
+    logger.info("Starting Mass Report Bot...")
+    app.run()
