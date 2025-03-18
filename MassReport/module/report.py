@@ -1,11 +1,13 @@
-from MassReport import app
-from MassReport.database import database
-from MassReport.module.client_sessions import clients
+# MassReport/modules/report.py
+
 from pyrogram import filters, errors
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.raw.functions.account import ReportPeer
 from pyrogram.raw.types import *
 import asyncio
+from MassReport import app
+from MassReport.database import database
+from MassReport.module.client_sessions import clients
 
 REASON_MAP = {
     "1": ("Spam", InputReportReasonSpam),
@@ -19,29 +21,30 @@ REASON_MAP = {
     "9": ("Other", InputReportReasonOther)
 }
 
-# /start command
-@app.on_message(filters.command("start") & filters.private)
-async def start(client, message):
-    database.set_user_data(message.from_user.id, {})
+@app.on_message(filters.command("report") & filters.private)
+async def report(client, message):
+    database.set_user_data(message.from_user.id, {"step": "awaiting_target"})
     await message.reply_text(
-        "**Welcome to Mass Report Bot!**\n\n"
+        "**Mass Report Initiated!**\n\n"
         "Please send me the **Target Group/Channel Link**:"
     )
 
-# Handle steps
 @app.on_message(filters.private & filters.text)
 async def handle_steps(client, message):
     user_id = message.from_user.id
     data = database.get_user_data(user_id)
+    step = data.get("step")
 
-    if "target" not in data:
+    if step == "awaiting_target":
         data["target"] = message.text.strip()
+        data["step"] = "awaiting_message_link"
         database.set_user_data(user_id, data)
         await message.reply_text("Now send me the **Message Link** (Target Message to report):")
         return
 
-    if "message_link" not in data:
+    if step == "awaiting_message_link":
         data["message_link"] = message.text.strip()
+        data["step"] = "awaiting_reason"
         database.set_user_data(user_id, data)
 
         buttons = [
@@ -54,7 +57,7 @@ async def handle_steps(client, message):
         )
         return
 
-    if "reason" in data and "count" not in data:
+    if step == "awaiting_count":
         try:
             count = int(message.text.strip())
             data["count"] = count
@@ -65,7 +68,6 @@ async def handle_steps(client, message):
             await message.reply_text("Please send a valid number for count!")
         return
 
-# Reason Selection
 @app.on_callback_query(filters.regex(r"reason_\d+"))
 async def reason_selected(client, callback_query):
     user_id = callback_query.from_user.id
@@ -78,10 +80,10 @@ async def reason_selected(client, callback_query):
 
     data = database.get_user_data(user_id)
     data["reason"] = reason_tuple[1]
+    data["step"] = "awaiting_count"
     database.set_user_data(user_id, data)
     await callback_query.message.edit_text(f"Selected Reason: **{reason_tuple[0]}**\n\nNow send me **Report Count**:")
 
-# Reporting Logic
 async def start_reporting(client, message, data):
     target_link = data["target"]
     message_link = data["message_link"]
