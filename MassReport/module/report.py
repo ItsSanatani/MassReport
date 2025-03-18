@@ -42,7 +42,8 @@ async def start_report_callback(client, callback_query):
     await initiate_report_process(callback_query.from_user.id, callback_query.message)
 
 async def initiate_report_process(user_id, message):
-    database.set_user_data(user_id, {"step": "awaiting_target"})
+    # Await the async database method
+    await database.set_user_data(user_id, {"step": "awaiting_target"})
     logger.info(f"User {user_id}: Awaiting target group/channel link.")
     await message.reply_text(
         "**Mass Report Initiated!**\n\n"
@@ -52,13 +53,14 @@ async def initiate_report_process(user_id, message):
 @app.on_message(filters.private & filters.text)
 async def handle_steps(client, message):
     user_id = message.from_user.id
-    data = database.get_user_data(user_id)
+    # Await the async database method
+    data = await database.get_user_data(user_id)  
     step = data.get("step")
 
     if step == "awaiting_target":
         data["target"] = message.text.strip()
         data["step"] = "awaiting_message_link"
-        database.set_user_data(user_id, data)
+        await database.set_user_data(user_id, data)
         logger.info(f"User {user_id}: Provided target link: {data['target']}")
         await message.reply_text("Now send me the **Message Link** (Target Message to report):")
         return
@@ -66,7 +68,7 @@ async def handle_steps(client, message):
     if step == "awaiting_message_link":
         data["message_link"] = message.text.strip()
         data["step"] = "awaiting_reason"
-        database.set_user_data(user_id, data)
+        await database.set_user_data(user_id, data)
         logger.info(f"User {user_id}: Provided message link: {data['message_link']}")
 
         buttons = [
@@ -83,7 +85,7 @@ async def handle_steps(client, message):
         try:
             count = int(message.text.strip())
             data["count"] = count
-            database.set_user_data(user_id, data)
+            await database.set_user_data(user_id, data)
             logger.info(f"User {user_id}: Provided count: {count}")
             await message.reply_text(f"**Starting Mass Report...**")
             await start_reporting(client, message, data)
@@ -103,10 +105,10 @@ async def reason_selected(client, callback_query):
         await callback_query.answer("Invalid Reason!", show_alert=True)
         return
 
-    data = database.get_user_data(user_id)
+    data = await database.get_user_data(user_id)
     data["reason"] = reason_tuple[1]
     data["step"] = "awaiting_count"
-    database.set_user_data(user_id, data)
+    await database.set_user_data(user_id, data)
     logger.info(f"User {user_id}: Selected reason {reason_tuple[0]}")
     await callback_query.message.edit_text(f"Selected Reason: **{reason_tuple[0]}**\n\nNow send me **Report Count**:")
 
@@ -168,5 +170,5 @@ async def start_reporting(client, message, data):
         f"**Successful Reports:** {success}\n"
         f"**Failed Reports:** {failed}"
     )
-    database.clear_user_data(message.from_user.id)
+    await database.clear_user_data(message.from_user.id)
     logger.info(f"User {message.from_user.id}: Cleared session data.")
