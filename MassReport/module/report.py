@@ -140,3 +140,16 @@ async def start_reporting(client, message, data):
         f"**Failed Reports:** {failed}"
     )
     database.clear_user_data(message.from_user.id)
+    
+#=×=×=×=×=×=×=×=×=×=×=×=×=×=×=×
+
+@app.on_message(filters.command("start") & filters.private)
+async def start_command(client, message):
+    buttons = [
+        [InlineKeyboardButton("➕ Start Reporting", callback_data="start_report")]
+    ]
+    await message.reply_photo(
+        photo="https://files.catbox.moe/31g9nf.jpg",  # Put your image URL here
+        caption="**Welcome to Mass Report Bot!**\n\nClick the button below to start reporting.",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
