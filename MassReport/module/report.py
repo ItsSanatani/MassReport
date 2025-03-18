@@ -1,5 +1,3 @@
-# MassReport/modules/report.py
-
 from pyrogram import filters, errors
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.raw.functions.account import ReportPeer
@@ -22,8 +20,15 @@ REASON_MAP = {
 }
 
 @app.on_message(filters.command("report") & filters.private)
-async def report(client, message):
-    database.set_user_data(message.from_user.id, {"step": "awaiting_target"})
+async def report_command(client, message):
+    await initiate_report_process(message.from_user.id, message)
+
+@app.on_callback_query(filters.regex(r"^start_report$"))
+async def start_report_callback(client, callback_query):
+    await initiate_report_process(callback_query.from_user.id, callback_query.message)
+
+async def initiate_report_process(user_id, message):
+    database.set_user_data(user_id, {"step": "awaiting_target"})
     await message.reply_text(
         "**Mass Report Initiated!**\n\n"
         "Please send me the **Target Group/Channel Link**:"
@@ -68,7 +73,7 @@ async def handle_steps(client, message):
             await message.reply_text("Please send a valid number for count!")
         return
 
-@app.on_callback_query(filters.regex(r"reason_\d+"))
+@app.on_callback_query(filters.regex(r"^reason_\d+$"))
 async def reason_selected(client, callback_query):
     user_id = callback_query.from_user.id
     reason_num = callback_query.data.split("_")[1]
